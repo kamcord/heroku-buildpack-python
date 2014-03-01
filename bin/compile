@@ -96,6 +96,14 @@ bpwatch start pre_compile
   source $BIN_DIR/steps/hooks/pre_compile
 bpwatch stop pre_compile
 
+# Clone the already compiled ffmped binaries from github
+FFMPEG_BINARY="https://github.com/dqueue/heroku-ffmpeg.git"
+VENDOR_FOLDER="vendor/ffmpeg"
+
+mkdir -p $BUILD_DIR/$VENDOR_FOLDER  &> /dev/null
+git clone $FFMPEG_BINARY $BUILD_DIR/$VENDOR_FOLDER  &> /dev/null
+puts-step "Cloning pre-built ffmpeg repository..."
+
 # If no requirements given, assume `setup.py develop`.
 if [ ! -f requirements.txt ]; then
   puts-step "No requirements.txt provided; assuming dist package."
@@ -128,6 +136,28 @@ bpwatch start restore_cache
     cp -R $CACHE_DIR/$dir . &> /dev/null || true
   done
 bpwatch stop restore_cache
+
+# Install SWIG
+if [ ! -d $CACHE_DIR/swig ]; then
+  cd $BUILD_DIR
+  echo "-----> Fetching and installing SWIG 2"
+  curl -O https://s3.amazonaws.com/guybowden/swig.tar.gz >/dev/null 2>&1
+  echo "-----> Installing ..."
+  tar xzvf swig.tar.gz >/dev/null 2>&1
+  mv swig $CACHE_DIR/swig
+  rm swig.tar.gz
+  echo "SWIG installed" | indent
+fi
+
+mkdir -p .paybox
+cp -R $CACHE_DIR/swig .paybox
+
+echo "updating path..." | indent
+PATH=$PATH:$BUILD_DIR/.paybox/swig/bin/
+export PATH
+echo $PATH | indent
+echo "setting SWIG_LIB environment var"
+export SWIG_LIB=$BUILD_DIR/.paybox/swig/share/swig/2.0.5/
 
 set +e
 # Create set-aside `.heroku` folder.
@@ -234,11 +264,11 @@ bpwatch stop collectstatic
 #
 
 # Set context environment variables.
-set-env PATH '$HOME/.heroku/python/bin:$PATH'
+set-env PATH '$HOME/.heroku/python/bin:$PATH:/app/.heroku/vendor/ffmpeg/ffmpeg/bin'
 set-env PYTHONUNBUFFERED true
 set-env PYTHONHOME /app/.heroku/python
-set-default-env LIBRARY_PATH /app/.heroku/vendor/lib
-set-default-env LD_LIBRARY_PATH /app/.heroku/vendor/lib
+set-default-env LIBRARY_PATH /app/.heroku/vendor/lib:/app/.heroku/vendor/ffmpeg/fdk-aac/lib:/app/.heroku/vendor/ffmpeg/ffmpeg/lib
+set-default-env LD_LIBRARY_PATH /app/.heroku/vendor/lib:/app/.heroku/vendor/ffmpeg/fdk-aac/lib:/app/.heroku/vendor/ffmpeg/ffmpeg/lib
 set-default-env LANG en_US.UTF-8
 set-default-env PYTHONHASHSEED random
 set-default-env PYTHONPATH /app/

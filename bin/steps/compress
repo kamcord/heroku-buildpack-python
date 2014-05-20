@@ -13,11 +13,11 @@ MANAGE_FILE=${MANAGE_FILE:-fakepath}
 set +e
 
 echo "running compression"
-python $MANAGE_FILE compress 2>&1 | indent
+python $MANAGE_FILE compress 2>&1
 
-[ $? -ne 0 ] && {
+([ $? -ne 0 ] && {
     echo " !     Error running manage.py compress."
-}
+}) || echo " Compress successful"
 
 
 

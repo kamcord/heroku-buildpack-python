@@ -260,6 +260,11 @@ bpwatch start collectstatic
   sub-env $BIN_DIR/steps/collectstatic
 bpwatch stop collectstatic
 
+#Django compress support.
+bpwatch start compress
+  sub-env $BIN_DIR/steps/compress
+bpwatch stop compress
+
 # ### Finalize
 #
 
